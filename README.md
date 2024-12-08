@@ -19,7 +19,7 @@ This script takes as input FASTA files from Uniprot (which do not contain chain 
 Clone this repo:
 
 ```bash
-git clone
+git clone https://github.com/rsnydr/SEQRES-formatter.git
 ```
 
 ## Usage
