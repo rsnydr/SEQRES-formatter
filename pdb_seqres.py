@@ -1,4 +1,6 @@
-# script for SEQRES protein sequence formatting from PDB FASTA files
+'''
+    Script for SEQRES formatting from PDB fasta files.
+'''
 
 import os
 import re
@@ -16,15 +18,15 @@ def chain_extractor(line):
     """
     regex = re.compile(r'(?<=\|Chain)(.*?)(?=\|)')
     mo = regex.search(line)
-    if mo:
+    try:
         chains = mo.group().split(',')
         chains[0] = re.sub(r's', '', chains[0])
-        chains = map(lambda x : x.strip(), chains)    
+        chains = map(lambda x: x.strip(), chains)
         return chains
-    else:
-        raise ValueError("No chains found. Check the formatting of your FASTA file.")
-    
-    
+    except AttributeError as err:
+        print('No chain name found. Check the formatting of your file.', err)
+        return
+
 
 def extractor(file):
     """ Given an input file, returns a zip object pairing
@@ -39,10 +41,7 @@ def extractor(file):
             line = line.strip()
             sequences.append(line)
 
-    if len(chains) == len(sequences):
-        return zip(chains, sequences)
-    else:
-        raise Exception("Your FASTA file is formatted incorrectly. Please check its formatting.")
+    return zip(chains, sequences)
 
 
 def write_helper(chain_pair, file):
@@ -55,16 +54,19 @@ def write_helper(chain_pair, file):
     total_length = len(s)
     try:
         aa_list = [helpers.d[char] for char in s]
-    except KeyError:
-        print('Code corresponding to chains {} not formatted properly.'.format(list(chain_nums)))
+    except KeyError as err:
+        print(
+            f'Code corresponding to chains {list(chains)} not formatted properly.', err)
         return
-    aa_list_split = helpers._split(aa_list, helpers.NUM_OF_AMINO_ACIDS_PER_LINE)
+    aa_list_split = helpers.splitter(
+        aa_list, helpers.NUM_OF_AMINO_ACIDS_PER_LINE)
     num_of_lines = len(aa_list_split)
 
     for chain in chains:
         for i in range(num_of_lines):
             sequence = ' '.join(aa_list_split[i])
-            file.write(helpers._format(helpers.PROGRAM_CODE, i + 1, chain, total_length, sequence))
+            file.write(helpers.formatter(helpers.PROGRAM_CODE,
+                       i + 1, chain, total_length, sequence))
 
 
 def writer(filename):
@@ -72,20 +74,19 @@ def writer(filename):
         and iterates write_helper to the output 
         file labeled filename-formatted.txt
     """
-    with open(filename, 'r') as file:
+    with open(filename, 'r', encoding='utf-8') as file:
         data = extractor(file)
 
-    path = os.getcwd()
     name, _ = os.path.splitext(filename)
-    formatted_filename = '{}-formatted.txt'.format(name)
+    formatted_filename = f'{name}-formatted.txt'
 
     if formatted_filename in os.listdir():
         os.unlink(formatted_filename)
-    with open(formatted_filename, 'a') as file:
+    with open(formatted_filename, 'a', encoding='utf-8') as file:
         for pair in data:
             write_helper(pair, file)
-    
+
 
 if __name__ == "__main__":
-    filename = sys.argv[1].strip()
-    writer(filename)
+    user_filename = sys.argv[1].strip()
+    writer(user_filename)
